@@ -15,25 +15,37 @@ pub fn main() !void {
 
     var list_a = ArrayList(i32).init(allocator);
     var list_b = ArrayList(i32).init(allocator);
+    var dist = ArrayList(u32).init(allocator);
+    var slices = ArrayList(i32).init(allocator);
+
+    defer list_a.deinit();
+    defer list_b.deinit();
+    defer dist.deinit();
+    defer slices.deinit();
 
     while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
-
         // Parse List A & List B values
         var iter = std.mem.splitSequence(u8, line, "   ");
-        var count: u32 = 0;
+        //var count: u32 = 0;
         while (iter.next()) |x| {
-            if (count % 2 == 0) {
-                const a_val = try std.fmt.parseInt(i32, x, 10);
-                try list_a.append(a_val);
+            //std.debug.print("Observing slice: {s}\n", .{x});
+            //std.debug.print("Slice length: {d}\n", .{x.len});
+            //std.debug.print("Converting {s} to i32...\n", .{x});
+            if (std.ascii.isWhitespace(x[x.len - 1])) {
+                //std.debug.print("Removing whitespace char...\n", .{});
+                const trimmed = x[0 .. x.len - 1];
+                try list_b.append(std.fmt.parseInt(i32, trimmed, 10) catch |err| {
+                    std.debug.print("{}\n", .{err});
+                    return;
+                });
             } else {
-                const b_val = try std.fmt.parseInt(i32, x, 10);
-                try list_b.append(b_val);
+                try list_a.append(std.fmt.parseInt(i32, x, 10) catch |err| {
+                    std.debug.print("{}\n", .{err});
+                    return;
+                });
             }
-            count += 1;
         }
     }
-
-    var dist = ArrayList(u32).init(allocator);
 
     std.mem.sort(i32, list_a.items[0..], {}, comptime std.sort.asc(i32));
     std.mem.sort(i32, list_b.items[0..], {}, comptime std.sort.asc(i32));
@@ -42,16 +54,12 @@ pub fn main() !void {
         try dist.append(@abs(item - list_b.items[idx]));
     }
 
-    std.debug.print("Distances:\n", .{});
+    //std.debug.print("Distances:\n", .{});
     var sum: u32 = 0;
     for (dist.items) |val| {
         sum += val;
         //std.debug.print("{d}", .{val});
         //std.debug.print("\n", .{});
     }
-    std.debug.print("{d}", .{sum});
-
-    dist.deinit();
-    list_a.deinit();
-    list_b.deinit();
+    std.debug.print("Sum: {d}", .{sum});
 }
